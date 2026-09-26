@@ -1,26 +1,44 @@
 "use client";
 
-import { useState } from "react";
-import { UploadCloud, FileText, MessageSquare, ShieldAlert, Zap, Scale, CheckCircle2, ChevronRight, FileSearch, ArrowRight, Loader2 } from "lucide-react";
+import { useState, useCallback } from "react";
+import { UploadCloud, FileText, MessageSquare, ShieldAlert, Zap, Scale, CheckCircle2, FileSearch, ArrowRight, Loader2 } from "lucide-react";
+
+/**
+ * Represents a single chat message in the Q&A interface.
+ */
+interface ChatMessage {
+  role: "user" | "ai";
+  text: string;
+}
 
 export default function Home() {
   const [file, setFile] = useState<File | null>(null);
   const [gsUri, setGsUri] = useState<string>("");
-  const [isUploading, setIsUploading] = useState(false);
+  const [isUploading, setIsUploading] = useState<boolean>(false);
   const [summary, setSummary] = useState<string>("");
-  const [isSummarizing, setIsSummarizing] = useState(false);
-  
-  const [question, setQuestion] = useState("");
-  const [chatHistory, setChatHistory] = useState<{role: string, text: string}[]>([]);
-  const [isAsking, setIsAsking] = useState(false);
+  const [isSummarizing, setIsSummarizing] = useState<boolean>(false);
+  const [question, setQuestion] = useState<string>("");
+  const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
+  const [isAsking, setIsAsking] = useState<boolean>(false);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  /**
+   * Handles the file input change event.
+   */
+  const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0]);
+      const selectedFile = e.target.files[0];
+      if (selectedFile.type !== "application/pdf") {
+        alert("Please upload a valid PDF document.");
+        return;
+      }
+      setFile(selectedFile);
     }
-  };
+  }, []);
 
-  const uploadFile = async () => {
+  /**
+   * Reads the selected file and converts it to Base64 for the API.
+   */
+  const uploadFile = useCallback(async () => {
     if (!file) return;
     setIsUploading(true);
     try {
@@ -31,14 +49,22 @@ export default function Home() {
         setGsUri(base64Data);
         setIsUploading(false);
       };
+      reader.onerror = () => {
+        alert("Error reading file.");
+        setIsUploading(false);
+      };
       reader.readAsDataURL(file);
     } catch (err) {
-      alert("Error reading file.");
+      console.error(err);
+      alert("Unexpected error occurred while processing the file.");
       setIsUploading(false);
     }
-  };
+  }, [file]);
 
-  const getSummary = async () => {
+  /**
+   * Fetches the AI-generated summary of the document.
+   */
+  const getSummary = useCallback(async () => {
     if (!gsUri) return;
     setIsSummarizing(true);
     try {
@@ -51,20 +77,24 @@ export default function Home() {
       if (res.ok) {
         setSummary(data.summary);
       } else {
-        alert("Failed to get summary");
+        alert(data.detail || "Failed to get summary");
       }
     } catch (err) {
-      alert("Error connecting to server.");
+      console.error(err);
+      alert("Error connecting to server. Please try again later.");
     } finally {
       setIsSummarizing(false);
     }
-  };
+  }, [gsUri]);
 
-  const askQuestion = async (e: React.FormEvent) => {
+  /**
+   * Submits a user question to the AI assistant.
+   */
+  const askQuestion = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!question || !gsUri) return;
+    if (!question.trim() || !gsUri) return;
     
-    const userQ = question;
+    const userQ = question.trim();
     setQuestion("");
     setChatHistory(prev => [...prev, { role: "user", text: userQ }]);
     setIsAsking(true);
@@ -79,20 +109,21 @@ export default function Home() {
       if (res.ok) {
         setChatHistory(prev => [...prev, { role: "ai", text: data.answer }]);
       } else {
-        setChatHistory(prev => [...prev, { role: "ai", text: "Error: " + data.detail }]);
+        setChatHistory(prev => [...prev, { role: "ai", text: "Error: " + (data.detail || "Unknown error") }]);
       }
     } catch (err) {
-      setChatHistory(prev => [...prev, { role: "ai", text: "Error connecting to server." }]);
+      console.error(err);
+      setChatHistory(prev => [...prev, { role: "ai", text: "Error connecting to server. Please try again." }]);
     } finally {
       setIsAsking(false);
     }
-  };
+  }, [question, gsUri]);
 
   return (
-    <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-      <header className="mb-12 flex items-center justify-between">
+    <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10" aria-label="Aura Legal Application">
+      <header className="mb-12 flex items-center justify-between" role="banner">
         <div className="flex items-center gap-3">
-          <div className="p-3 bg-indigo-500/20 rounded-xl backdrop-blur-md border border-indigo-500/30">
+          <div className="p-3 bg-indigo-500/20 rounded-xl backdrop-blur-md border border-indigo-500/30" aria-hidden="true">
             <Scale className="w-8 h-8 text-indigo-400" />
           </div>
           <div>
@@ -107,12 +138,14 @@ export default function Home() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         
         {/* Left Column: Upload & Summary */}
-        <div className="lg:col-span-5 space-y-6">
+        <section className="lg:col-span-5 space-y-6" aria-labelledby="upload-summary-section">
+          <h2 id="upload-summary-section" className="sr-only">Document Upload and Summary</h2>
+          
           <div className="bg-slate-800/40 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6 shadow-2xl relative overflow-hidden group">
-            <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-            <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-              <UploadCloud className="w-5 h-5 text-indigo-400" /> Upload Document
-            </h2>
+            <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" aria-hidden="true" />
+            <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+              <UploadCloud className="w-5 h-5 text-indigo-400" aria-hidden="true" /> Upload Document
+            </h3>
             
             {!gsUri ? (
               <div className="space-y-4 relative z-10">
@@ -123,9 +156,10 @@ export default function Home() {
                     onChange={handleFileChange}
                     className="hidden" 
                     id="file-upload" 
+                    aria-label="Upload PDF Document"
                   />
                   <label htmlFor="file-upload" className="cursor-pointer flex flex-col items-center">
-                    <FileText className="w-10 h-10 text-slate-400 mb-3" />
+                    <FileText className="w-10 h-10 text-slate-400 mb-3" aria-hidden="true" />
                     <span className="text-sm font-medium text-slate-300">
                       {file ? file.name : "Click to select a PDF contract"}
                     </span>
@@ -135,15 +169,17 @@ export default function Home() {
                 <button 
                   onClick={uploadFile}
                   disabled={!file || isUploading}
-                  className="w-full py-3 px-4 bg-gradient-to-r from-indigo-500 to-blue-600 hover:from-indigo-600 hover:to-blue-700 text-white rounded-xl font-medium transition-all shadow-lg shadow-indigo-500/25 disabled:opacity-50 flex justify-center items-center gap-2"
+                  aria-busy={isUploading}
+                  aria-label={isUploading ? "Uploading Document" : "Analyze Document"}
+                  className="w-full py-3 px-4 bg-gradient-to-r from-indigo-500 to-blue-600 hover:from-indigo-600 hover:to-blue-700 text-white rounded-xl font-medium transition-all shadow-lg shadow-indigo-500/25 disabled:opacity-50 flex justify-center items-center gap-2 focus:ring-2 focus:ring-indigo-400 focus:outline-none"
                 >
-                  {isUploading ? <Loader2 className="w-5 h-5 animate-spin" /> : <UploadCloud className="w-5 h-5" />}
+                  {isUploading ? <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" /> : <UploadCloud className="w-5 h-5" aria-hidden="true" />}
                   {isUploading ? "Uploading & Processing..." : "Analyze Document"}
                 </button>
               </div>
             ) : (
-              <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-start gap-3 relative z-10">
-                <CheckCircle2 className="w-5 h-5 text-emerald-400 mt-0.5" />
+              <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-start gap-3 relative z-10" role="status" aria-live="polite">
+                <CheckCircle2 className="w-5 h-5 text-emerald-400 mt-0.5" aria-hidden="true" />
                 <div>
                   <h3 className="text-emerald-300 font-medium">Document Ready</h3>
                   <p className="text-emerald-400/70 text-sm mt-1">{file?.name}</p>
@@ -155,32 +191,34 @@ export default function Home() {
           {gsUri && (
             <div className="bg-slate-800/40 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6 shadow-2xl flex flex-col h-[500px]">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-semibold text-white flex items-center gap-2">
-                  <FileSearch className="w-5 h-5 text-cyan-400" /> Document Summary
-                </h2>
+                <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                  <FileSearch className="w-5 h-5 text-cyan-400" aria-hidden="true" /> Document Summary
+                </h3>
                 {!summary && (
                   <button 
                     onClick={getSummary}
                     disabled={isSummarizing}
-                    className="text-xs py-1.5 px-3 bg-slate-700 hover:bg-slate-600 rounded-lg text-slate-200 transition-colors flex items-center gap-1"
+                    aria-busy={isSummarizing}
+                    aria-label="Generate Summary"
+                    className="text-xs py-1.5 px-3 bg-slate-700 hover:bg-slate-600 rounded-lg text-slate-200 transition-colors flex items-center gap-1 focus:ring-2 focus:ring-cyan-400 focus:outline-none"
                   >
-                    {isSummarizing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Zap className="w-3 h-3" />}
+                    {isSummarizing ? <Loader2 className="w-3 h-3 animate-spin" aria-hidden="true" /> : <Zap className="w-3 h-3" aria-hidden="true" />}
                     Generate
                   </button>
                 )}
               </div>
               
-              <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+              <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar" aria-live="polite">
                 {isSummarizing ? (
                   <div className="flex flex-col items-center justify-center h-full text-slate-400 space-y-4">
-                    <Loader2 className="w-8 h-8 animate-spin text-cyan-400" />
+                    <Loader2 className="w-8 h-8 animate-spin text-cyan-400" aria-hidden="true" />
                     <p className="text-sm">Reading document and extracting insights...</p>
                   </div>
                 ) : summary ? (
                   <div className="prose prose-invert prose-sm max-w-none text-slate-300">
                     <div dangerouslySetInnerHTML={{ __html: summary.replace(/\n/g, '<br/>') }} />
-                    <div className="mt-6 p-4 bg-amber-500/10 border border-amber-500/20 rounded-lg flex items-start gap-3">
-                      <ShieldAlert className="w-5 h-5 text-amber-400 shrink-0" />
+                    <div className="mt-6 p-4 bg-amber-500/10 border border-amber-500/20 rounded-lg flex items-start gap-3" role="alert">
+                      <ShieldAlert className="w-5 h-5 text-amber-400 shrink-0" aria-hidden="true" />
                       <p className="text-xs text-amber-300/80 leading-relaxed">
                         <strong>Disclaimer:</strong> This summary is generated by AI for informational purposes only. It is not legal advice and should not replace professional legal counsel.
                       </p>
@@ -188,30 +226,32 @@ export default function Home() {
                   </div>
                 ) : (
                   <div className="flex flex-col items-center justify-center h-full text-slate-500">
-                    <FileText className="w-12 h-12 mb-3 opacity-20" />
+                    <FileText className="w-12 h-12 mb-3 opacity-20" aria-hidden="true" />
                     <p className="text-sm">No summary generated yet.</p>
                   </div>
                 )}
               </div>
             </div>
           )}
-        </div>
+        </section>
 
         {/* Right Column: Q&A Chat */}
-        <div className="lg:col-span-7">
+        <section className="lg:col-span-7" aria-labelledby="qa-section">
+          <h2 id="qa-section" className="sr-only">Interactive Q&A Assistant</h2>
+          
           <div className="bg-slate-800/40 backdrop-blur-xl border border-slate-700/50 rounded-2xl shadow-2xl flex flex-col h-[calc(100vh-12rem)] min-h-[600px] overflow-hidden">
             
-            <div className="p-4 border-b border-slate-700/50 bg-slate-800/50">
-              <h2 className="text-lg font-semibold text-white flex items-center gap-2">
-                <MessageSquare className="w-5 h-5 text-purple-400" /> Legal Q&A Assistant
-              </h2>
+            <header className="p-4 border-b border-slate-700/50 bg-slate-800/50">
+              <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                <MessageSquare className="w-5 h-5 text-purple-400" aria-hidden="true" /> Legal Q&A Assistant
+              </h3>
               <p className="text-xs text-slate-400 mt-1">Ask questions about your uploaded document</p>
-            </div>
+            </header>
 
-            <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar bg-gradient-to-b from-transparent to-slate-900/50">
+            <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar bg-gradient-to-b from-transparent to-slate-900/50" aria-live="polite" role="log">
               {chatHistory.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-center px-8">
-                  <div className="w-16 h-16 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mb-6">
+                  <div className="w-16 h-16 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mb-6" aria-hidden="true">
                     <MessageSquare className="w-8 h-8 text-indigo-400" />
                   </div>
                   <h3 className="text-xl font-medium text-slate-200 mb-2">How can I help you?</h3>
@@ -233,7 +273,7 @@ export default function Home() {
                 ))
               )}
               {isAsking && (
-                <div className="flex justify-start">
+                <div className="flex justify-start" aria-label="AI is thinking...">
                   <div className="bg-slate-700/60 border border-slate-600/50 rounded-2xl rounded-tl-sm p-4 flex gap-2 items-center">
                     <div className="w-2 h-2 rounded-full bg-indigo-400 animate-bounce" />
                     <div className="w-2 h-2 rounded-full bg-indigo-400 animate-bounce delay-75" />
@@ -243,28 +283,32 @@ export default function Home() {
               )}
             </div>
 
-            <div className="p-4 bg-slate-800/80 border-t border-slate-700/50 backdrop-blur-md">
+            <footer className="p-4 bg-slate-800/80 border-t border-slate-700/50 backdrop-blur-md">
               <form onSubmit={askQuestion} className="relative">
+                <label htmlFor="chat-input" className="sr-only">Ask a question</label>
                 <input 
+                  id="chat-input"
                   type="text"
                   disabled={!gsUri || isAsking}
                   value={question}
                   onChange={(e) => setQuestion(e.target.value)}
                   placeholder={gsUri ? "Ask about termination clauses, liabilities, etc..." : "Upload a document first..."}
+                  aria-label="Ask a question about the document"
                   className="w-full bg-slate-900/80 border border-slate-600/50 rounded-xl py-4 pl-4 pr-12 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 />
                 <button 
                   type="submit"
-                  disabled={!question || !gsUri || isAsking}
-                  className="absolute right-2 top-2 bottom-2 p-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                  disabled={!question.trim() || !gsUri || isAsking}
+                  aria-label="Send message"
+                  className="absolute right-2 top-2 bottom-2 p-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center focus:ring-2 focus:ring-white focus:outline-none"
                 >
-                  <ArrowRight className="w-5 h-5" />
+                  <ArrowRight className="w-5 h-5" aria-hidden="true" />
                 </button>
               </form>
-            </div>
+            </footer>
             
           </div>
-        </div>
+        </section>
         
       </div>
     </main>

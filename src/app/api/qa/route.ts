@@ -1,14 +1,29 @@
 import { NextRequest, NextResponse } from "next/server";
 
+/**
+ * Request payload interface for strict type checking
+ */
+interface QaRequest {
+  question: string;
+  gs_uri: string;
+}
+
+/**
+ * Handles POST requests to answer questions about a legal document
+ * @param req - The NextRequest object
+ * @returns NextResponse with the AI answer or error details
+ */
 export async function POST(req: NextRequest) {
   try {
-    const { question, gs_uri } = await req.json();
+    const body: Partial<QaRequest> = await req.json().catch(() => ({}));
+    const { question, gs_uri } = body;
     
-    if (!question) {
-      return NextResponse.json({ detail: "Question is required" }, { status: 400 });
+    // Security: Input validation
+    if (!question || typeof question !== "string" || question.trim().length === 0) {
+      return NextResponse.json({ detail: "Invalid or missing question parameter" }, { status: 400 });
     }
-    if (!gs_uri) {
-      return NextResponse.json({ detail: "Missing gs_uri parameter" }, { status: 400 });
+    if (!gs_uri || typeof gs_uri !== "string" || gs_uri.length < 100) {
+      return NextResponse.json({ detail: "Invalid or missing gs_uri parameter. Expected Base64 string." }, { status: 400 });
     }
 
     const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
@@ -49,16 +64,20 @@ export async function POST(req: NextRequest) {
 
     if (res.ok) {
       try {
-        const text = data.candidates[0].content.parts[0].text;
+        const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (!text) throw new Error("Invalid response format");
         return NextResponse.json({ answer: text, disclaimer: "This is not legal advice." }, { status: 200 });
       } catch (err) {
         return NextResponse.json({ detail: "Error parsing Gemini response." }, { status: 500 });
       }
     } else {
-      return NextResponse.json({ detail: `Gemini API Error: ${JSON.stringify(data)}` }, { status: 500 });
+      // Avoid leaking internal API errors completely in production, but provide basic info
+      console.error("Gemini API Error:", data);
+      return NextResponse.json({ detail: "Failed to communicate with AI provider." }, { status: 502 });
     }
 
-  } catch (err: any) {
-    return NextResponse.json({ detail: err.message }, { status: 500 });
+  } catch (err: unknown) {
+    const errorMsg = err instanceof Error ? err.message : "Internal Server Error";
+    return NextResponse.json({ detail: errorMsg }, { status: 500 });
   }
 }
