@@ -23,23 +23,17 @@ export default function Home() {
   const uploadFile = async () => {
     if (!file) return;
     setIsUploading(true);
-    const formData = new FormData();
-    formData.append("file", file);
-
     try {
-      const res = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setGsUri(data.gsUri);
-      } else {
-        alert("Upload failed: " + data.detail);
-      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        const base64 = reader.result as string;
+        const base64Data = base64.split(',')[1];
+        setGsUri(base64Data);
+        setIsUploading(false);
+      };
+      reader.readAsDataURL(file);
     } catch (err) {
-      alert("Error connecting to server. Make sure the backend is running.");
-    } finally {
+      alert("Error reading file.");
       setIsUploading(false);
     }
   };
@@ -48,7 +42,11 @@ export default function Home() {
     if (!gsUri) return;
     setIsSummarizing(true);
     try {
-      const res = await fetch(`/api/summary?uri=${encodeURIComponent(gsUri)}`);
+      const res = await fetch(`/api/summary`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ gs_uri: gsUri })
+      });
       const data = await res.json();
       if (res.ok) {
         setSummary(data.summary);
