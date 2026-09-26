@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
         const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
         if (!text) throw new Error("Invalid response format");
         return NextResponse.json({ answer: text, disclaimer: "This is not legal advice." }, { status: 200 });
-      } catch (err) {
+      } catch {
         return NextResponse.json({ detail: "Error parsing Gemini response." }, { status: 500 });
       }
     } else {
