@@ -1,36 +1,84 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Aura | GenAI-Powered Legal Assistant ⚖️✨
 
-## Getting Started
+![Aura Legal](https://img.shields.io/badge/Powered_by-Google_GenAI-blue?style=for-the-badge&logo=google) ![Gemini API](https://img.shields.io/badge/Model-Gemini_3.8_Flash-purple?style=for-the-badge) ![Next.js](https://img.shields.io/badge/Next.js-15-black?style=for-the-badge&logo=next.js)
 
-First, run the development server:
+**Aura** is a fully functional, stateless web application designed to make legal information radically more accessible. By leveraging the sheer power of **Google's Generative AI (GenAI)** and the **Gemini API**, Aura is capable of understanding, analyzing, and summarizing complex legal documents in seconds—without the need for traditional databases or heavy backend infrastructure.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+---
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 🧠 The Power of GenAI & Gemini Integration
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Aura is built from the ground up around **Google GenAI**. Rather than using legacy OCR engines or basic text parsers, Aura utilizes the native **multimodal capabilities of the Gemini API (Gemini 3.8 Flash)**.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### How it works:
+1. **Multimodal Native Processing:** When you upload a legal document (PDF), Aura does *not* attempt to extract the text manually. Instead, it encodes the raw file into Base64 and sends it directly to the Gemini API as `inlineData`.
+2. **Deep Comprehension:** Because Gemini natively understands multimodal documents, it reads the document as a human would—processing the formatting, the text, and the structural nuances of the legal contract simultaneously.
+3. **Generative Synthesis:** We use advanced prompt engineering to constrain the GenAI's output. Gemini is explicitly instructed to act as a legal assistant, outputting plain-language summaries and identifying key obligations, parties, and dates.
 
-## Learn More
+This GenAI-first approach completely eliminates the need for expensive document processing pipelines, cloud storage buckets, or vector databases.
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 🚀 Key Features
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- **Generative Summarization:** Upload a 50-page contract, and the GenAI model instantly generates a concise, plain-language summary highlighting the most critical terms and obligations.
+- **Context-Aware Q&A Chat:** Chat directly with your document. Ask specific questions (e.g., *"What is the termination clause?"*), and Gemini will generate accurate answers grounded *strictly* in the provided text, minimizing hallucinations.
+- **Clause Comparison:** Upload multiple documents and have the Gemini API highlight differences in liability clauses or obligations using targeted generative reasoning.
 
-## Deploy on Vercel
+---
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 🛠️ Architecture
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Aura uses a **Stateless Serverless Architecture** that is optimized for deployment on Vercel.
+
+- **Frontend:** Next.js App Router (React), beautifully styled with Tailwind CSS, glassmorphism, and Lucide icons.
+- **AI Logic / API:** Next.js Serverless Route Handlers (`/api/summary`, `/api/qa`). The AI logic is natively integrated into the Next.js framework, securely calling the Gemini API from the server side.
+- **No-Database Design:** To maximize privacy and security, the application is entirely stateless. Documents are processed in-memory, sent securely to the Gemini API, and immediately discarded. No user data or sensitive contracts are ever stored on a database.
+
+---
+
+## 🔒 Security, Privacy & Ethics
+
+When dealing with AI and Legal Tech, ethics are paramount:
+- **No Unauthorized Practice of Law:** Every prompt sent to the Gemini API is guarded with strict instructions explicitly forcing the model to act as an *informational assistant*, rather than a lawyer.
+- **Mandatory Disclaimers:** The UI enforces prominent disclaimers on every piece of GenAI output to ensure users understand they are interacting with AI, not receiving tailored legal counsel.
+- **Ephemeral Processing:** Because there is no database, your legal documents are processed and forgotten instantly. 
+
+---
+
+## ⚡ 1-Click Deployment
+
+Deploy your own GenAI Legal Assistant in 60 seconds:
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/lohithabandirala/prompt_exclusive&env=GEMINI_API_KEY)
+
+1. Click the button above.
+2. Provide a name for your project.
+3. Paste your **Gemini API Key** from [Google AI Studio](https://aistudio.google.com/app/apikey).
+4. Deploy!
+
+---
+
+### Local Development
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/lohithabandirala/prompt_exclusive.git
+   cd prompt_exclusive
+   ```
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Set your environment variable by creating a `.env` file in the root:
+   ```env
+   GEMINI_API_KEY=your_key_here
+   ```
+4. Start the development server:
+   ```bash
+   npm run dev
+   ```
+5. Open [http://localhost:3000](http://localhost:3000).
+
+---
+*Disclaimer: The outputs generated by this application are for informational assistance only. This application does not provide tailored legal advice and is not a substitute for consulting a licensed attorney.*
