@@ -1,62 +1,52 @@
-# Legal Assistant Application
+# Aura | AI Legal Assistant (Powered by Google GenAI)
 
-This is a fully functional, no-database web application designed to make legal information more accessible using Google GenAI (Gemini) and Google Cloud services.
+This is a fully functional, no-database web application designed to make legal information more accessible using **Google GenAI** (specifically the **Gemini API**).
 
-## Architecture
+By deeply integrating the powerful **Gemini 3.8 Flash** multimodal model, the app allows users to seamlessly upload legal documents and instantly generate plain-language summaries, extract key obligations, and ask complex document-bound questions.
 
-This application follows a stateless, serverless-oriented design:
-- **Frontend**: Next.js (React) application for UI, file uploads, chat interface.
-- **Backend**: Python FastAPI service that exposes REST endpoints for processing PDFs and interacting with AI models.
-- **Storage**: Google Cloud Storage (GCS) is used instead of a traditional database to store uploaded PDFs temporarily.
-- **AI Processing**: 
-  - **Google Document AI** for OCR and parsing text from uploaded PDFs.
-  - **Vertex AI (Gemini API)** for generating plain-language summaries, comparing clauses, highlighting risks, and answering document-specific questions.
+## Architecture & GenAI Integration
+
+This application follows a stateless, serverless-oriented design optimized specifically for the Gemini API.
+
+- **Frontend (Next.js)**: A responsive, glassmorphic UI utilizing Tailwind CSS for beautiful styling and `lucide-react` for iconography.
+- **Backend (Python / Flask)**: A lightweight API service designed to proxy requests and safely shuttle data to the Gemini API.
+- **GenAI Processing (Gemini API)**: The core of the app. Instead of relying on legacy OCR platforms or traditional databases, we leverage **Gemini's native multimodal vision capabilities**. The backend base64-encodes the raw PDF file and sends it directly to the Gemini API as `inlineData`. Gemini interprets the document structure and text simultaneously to generate accurate, high-quality responses.
 
 ## Features
-- **Upload Document**: Upload a legal PDF to GCS.
-- **Summarize**: Generate a plain-language summary highlighting key parties, dates, and obligations.
-- **Q&A**: Ask specific questions about the document and receive answers based *only* on the text provided.
-- **Compare Documents**: Highlight differences in liability clauses or obligations between two uploaded documents.
+- **GenAI Summarization**: Gemini parses the legal PDF and generates a plain-language summary highlighting key parties, dates, and obligations.
+- **Interactive Q&A Chat**: Ask specific questions about the document, and the GenAI model will return context-aware answers based *only* on the text provided.
+- **Compare Documents**: Highlight differences in liability clauses or obligations between two uploaded documents using targeted prompt engineering.
 
-## Security & Privacy
-- **Stateless Backend**: The backend does not retain any user data permanently.
-- **Data Encryption**: Relies on GCS encryption at rest. Use HTTPS in production for transit encryption.
-- **No Legal Advice**: The application is explicitly designed for *informational purposes only* and outputs disclaimers on all AI responses to avoid the unauthorized practice of law.
+## Security & Ethics
+- **Stateless Design**: The backend does not retain any user data permanently.
+- **Prompt Guardrails**: Every GenAI request is prepended with strict instructions explicitly forcing Gemini to act as an informational assistant, rather than a lawyer.
+- **No Legal Advice**: The application outputs prominent disclaimers on all GenAI responses to avoid the unauthorized practice of law.
 
 ## Getting Started
 
 ### Prerequisites
 - Python 3.9+
 - Node.js 18+
-- Google Cloud Project with the following APIs enabled:
-  - Google Cloud Storage
-  - Cloud Document AI API
-  - Vertex AI API (Gemini models)
-- A Service Account JSON key (`GOOGLE_APPLICATION_CREDENTIALS`).
+- A valid **Gemini API Key** from [Google AI Studio](https://aistudio.google.com/app/apikey).
 
-### Running the Backend (FastAPI)
+### 1. Setup the Backend (Flask + Gemini API)
 1. Navigate to the `backend` directory.
 2. Install dependencies:
    ```bash
    pip install -r requirements.txt
    ```
-3. Set environment variables (or let it fallback to mock mode):
-   ```bash
-   export GCS_BUCKET="your-bucket-name"
-   export PROJECT_ID="your-gcp-project-id"
-   export LOCATION="us"
-   export PROCESSOR_ID="your-docai-processor-id"
-   export GOOGLE_APPLICATION_CREDENTIALS="/path/to/key.json"
+3. Open `backend/.env` and paste your Gemini API key:
+   ```env
+   GEMINI_API_KEY=your_key_here
    ```
 4. Start the server:
    ```bash
-   uvicorn main:app --reload --port 8000
+   python main.py
    ```
-   *Note: If GCP credentials are not found, the backend will return mock data for testing purposes.*
 
-### Running the Frontend (Next.js)
+### 2. Setup the Frontend (Next.js)
 1. Navigate to the `frontend` directory.
-2. Install dependencies (if not already installed):
+2. Install dependencies:
    ```bash
    npm install
    ```
@@ -65,9 +55,5 @@ This application follows a stateless, serverless-oriented design:
    npm run dev
    ```
 4. Open [http://localhost:3000](http://localhost:3000) in your browser.
-
-## Testing and Code Quality
-- **Backend Unit Tests**: Can be added using `pytest` to mock SDK calls.
-- **Frontend**: Utilizes Tailwind CSS and accessible HTML components.
 
 *Disclaimer: The outputs generated by this application are for informational assistance only. This application does not provide tailored legal advice and is not a substitute for consulting a licensed attorney.*
